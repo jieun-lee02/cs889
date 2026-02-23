@@ -822,16 +822,8 @@ def page_results() -> None:
 
         else:
             # ✅ NON-AI MODE → NO SORTING
-            groups = group_non_ai(papers)
-
-            for group_name, group_papers in groups.items():
-                with st.expander(
-                    f"{group_name}  •  {len(group_papers)} paper(s)",
-                    expanded=True
-                ):
-                    for p in group_papers:  # ← preserves original order
-                        paper_card(p)
-
+           for p in papers:
+                paper_card(p)
     with history_col:
         render_viewing_history()
 
