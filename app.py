@@ -787,6 +787,48 @@ def page_results() -> None:
 
     with main_col:
         mode = st.toggle("AI mode (merge similar keywords)", value=False)
+        st.caption("Non-AI mode shows a flat ranked list. AI mode merges related keywords into concepts.")
+
+        query_key = get_query_key(query_text)
+        papers = HARDCODED_RESULTS.get(query_key, HARDCODED_RESULTS[DEFAULT_QUERY_KEY])
+        papers_sorted = sorted(papers, key=lambda p: p.relevance, reverse=True)
+
+        st.markdown(f"### Papers cited by: _{st.session_state.get('query', query_text) or 'your query'}_")
+        st.write(f"Showing **{len(papers_sorted)}** cited papers (hardcoded demo set).")
+
+        if mode:
+            # --- AI MODE → grouped ---
+            groups = group_ai(papers_sorted)
+
+            def group_score(item: Tuple[str, List[Paper]]) -> float:
+                _, ps = item
+                return max((p.relevance for p in ps), default=0.0)
+
+            groups_ordered = sorted(groups.items(), key=group_score, reverse=True)
+
+            for group_name, group_papers in groups_ordered:
+                with st.expander(f"{group_name}  •  {len(group_papers)} paper(s)", expanded=True):
+                    for p in sorted(group_papers, key=lambda x: x.relevance, reverse=True):
+                        paper_card(p)
+
+        else:
+            # --- NON-AI MODE → flat list ---
+            st.markdown("### Cited Papers")
+
+            for p in papers_sorted:
+                paper_card(p)
+
+    with history_col:
+        render_viewing_history()
+    inject_css()
+
+    query_text = render_results_topbar(key="results_query")
+    st.divider()
+
+    main_col, history_col = st.columns([3, 1])
+
+    with main_col:
+        mode = st.toggle("AI mode (merge similar keywords)", value=False)
         st.caption("Non-AI mode groups papers by exact keywords. AI mode merges related keywords into concepts.")
 
         query_key = get_query_key(query_text)
