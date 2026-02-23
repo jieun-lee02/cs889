@@ -782,27 +782,55 @@ def page_results() -> None:
 
     with main_col:
         mode = st.toggle("AI mode (merge similar keywords)", value=False)
-        st.caption("Non-AI mode groups papers by exact keywords. AI mode merges related keywords into concepts.")
+        st.caption(
+            "Non-AI mode groups papers by exact keywords (original order). "
+            "AI mode merges related keywords into concepts (sorted by relevance)."
+        )
 
         query_key = get_query_key(query_text)
-        papers = HARDCODED_RESULTS.get(query_key, HARDCODED_RESULTS[DEFAULT_QUERY_KEY])
-        papers_sorted = sorted(papers, key=lambda p: p.relevance, reverse=True)
 
-        groups = group_ai(papers_sorted) if mode else group_non_ai(papers_sorted)
+        # ORIGINAL ORDER (important!)
+        papers = HARDCODED_RESULTS.get(
+            query_key,
+            HARDCODED_RESULTS[DEFAULT_QUERY_KEY]
+        )
 
-        def group_score(item: Tuple[str, List[Paper]]) -> float:
-            _, ps = item
-            return max((p.relevance for p in ps), default=0.0)
+        st.markdown(
+            f"### Papers cited by: _{st.session_state.get('query', query_text) or 'your query'}_"
+        )
+        st.write(f"Showing **{len(papers)}** cited papers (hardcoded demo set).")
 
-        groups_ordered = sorted(groups.items(), key=group_score, reverse=True)
+        if mode:
+            # ✅ AI MODE → SORT + GROUP
+            papers_sorted = sorted(papers, key=lambda p: p.relevance, reverse=True)
 
-        st.markdown(f"### Papers cited by: _{st.session_state.get('query', query_text) or 'your query'}_")
-        st.write(f"Showing **{len(papers_sorted)}** cited papers (hardcoded demo set).")
+            groups = group_ai(papers_sorted)
 
-        for group_name, group_papers in groups_ordered:
-            with st.expander(f"{group_name}  •  {len(group_papers)} paper(s)", expanded=True):
-                for p in sorted(group_papers, key=lambda x: x.relevance, reverse=True):
-                    paper_card(p)
+            def group_score(item: Tuple[str, List[Paper]]) -> float:
+                _, ps = item
+                return max((p.relevance for p in ps), default=0.0)
+
+            groups_ordered = sorted(groups.items(), key=group_score, reverse=True)
+
+            for group_name, group_papers in groups_ordered:
+                with st.expander(
+                    f"{group_name}  •  {len(group_papers)} paper(s)",
+                    expanded=True
+                ):
+                    for p in sorted(group_papers, key=lambda x: x.relevance, reverse=True):
+                        paper_card(p)
+
+        else:
+            # ✅ NON-AI MODE → NO SORTING
+            groups = group_non_ai(papers)
+
+            for group_name, group_papers in groups.items():
+                with st.expander(
+                    f"{group_name}  •  {len(group_papers)} paper(s)",
+                    expanded=True
+                ):
+                    for p in group_papers:  # ← preserves original order
+                        paper_card(p)
 
     with history_col:
         render_viewing_history()
