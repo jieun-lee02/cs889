@@ -820,12 +820,6 @@ def page_results() -> None:
 
     with history_col:
         render_viewing_history()
-    inject_css()
-
-    query_text = render_results_topbar(key="results_query")
-    st.divider()
-
-    main_col, history_col = st.columns([3, 1])
 
     with main_col:
         mode = st.toggle("AI mode (merge similar keywords)", value=False)
